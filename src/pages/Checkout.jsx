@@ -117,17 +117,20 @@ export default function Checkout() {
       // Process M-Pesa payment
       const orderRef = `FWK${Date.now()}`
       
-      // Determine the correct function URL
+      // Determine the correct function URL based on deployment platform
       let functionUrl
-      if (window.location.origin.includes('netlify') || window.location.origin.includes('vercel')) {
-        // Production or preview deployment
+      if (window.location.origin.includes('vercel.app')) {
+        // Vercel deployment - use API route
+        functionUrl = `${window.location.origin}/api/mpesa-stk-push`
+      } else if (window.location.origin.includes('netlify.app')) {
+        // Netlify deployment - use Netlify function
         functionUrl = `${window.location.origin}/.netlify/functions/mpesa-stk-push`
       } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        // Local development - try Netlify dev server first, fallback to relative path
-        functionUrl = 'http://localhost:8888/.netlify/functions/mpesa-stk-push'
+        // Local development - try Vercel dev server first, then Netlify dev server
+        functionUrl = 'http://localhost:3000/api/mpesa-stk-push'
       } else {
-        // Fallback to relative path
-        functionUrl = '/.netlify/functions/mpesa-stk-push'
+        // Fallback - try API route first (for Vercel), then Netlify function
+        functionUrl = '/api/mpesa-stk-push'
       }
 
       const response = await fetch(functionUrl, {
