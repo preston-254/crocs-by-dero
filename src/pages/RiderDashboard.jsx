@@ -1,17 +1,56 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api'
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import L from 'leaflet'
 import { getRiderOrders, updateOrderStatus, updateRiderLocation, updateOrderRiderLocation, subscribeToRiderLocation } from '../firebase/ordersService'
 import { formatPrice } from '../context/ProductContext'
 import { Package, MapPin, Play, CheckCircle, Navigation, LogOut, Loader } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import 'leaflet/dist/leaflet.css'
 
-const GOOGLE_MAPS_API_KEY = process.env.VITE_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY'
+// Fix for default marker icons in Leaflet with Vite
+delete (L.Icon.Default.prototype as any)._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+})
 
-const mapContainerStyle = {
-  width: '100%',
-  height: '400px',
-  borderRadius: '12px'
+// Custom icons
+const redIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+})
+
+const blueIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+})
+
+const greenIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  iconSize: [35, 55],
+  iconAnchor: [17, 55],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+})
+
+// Component to update map center when location changes
+function MapUpdater({ center, zoom }) {
+  const map = useMap()
+  useEffect(() => {
+    map.setView(center, zoom)
+  }, [map, center, zoom])
+  return null
 }
 
 const defaultCenter = {
@@ -27,7 +66,6 @@ export default function RiderDashboard() {
   const [activeOrder, setActiveOrder] = useState(null)
   const [isTracking, setIsTracking] = useState(false)
   const [currentLocation, setCurrentLocation] = useState(null)
-  const [map, setMap] = useState(null)
   const watchIdRef = useRef(null)
   const locationUpdateInterval = useRef(null)
 
@@ -198,6 +236,15 @@ export default function RiderDashboard() {
   const activeOrders = orders.filter(o => o.status === 'in_transit' && o.riderId === riderId)
   const completedOrders = orders.filter(o => o.status === 'delivered' && o.riderId === riderId)
 
+  // Determine map center
+  const mapCenter = currentLocation 
+    ? [currentLocation.lat, currentLocation.lng]
+    : activeOrder?.deliveryLocation
+    ? [activeOrder.deliveryLocation.lat, activeOrder.deliveryLocation.lng]
+    : [defaultCenter.lat, defaultCenter.lng]
+  
+  const mapZoom = currentLocation ? 15 : 12
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -321,57 +368,56 @@ export default function RiderDashboard() {
                   </div>
                 )}
               </div>
-              {GOOGLE_MAPS_API_KEY && GOOGLE_MAPS_API_KEY !== 'YOUR_GOOGLE_MAPS_API_KEY' ? (
-                <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
-                  <GoogleMap
-                    mapContainerStyle={mapContainerStyle}
-                    center={currentLocation || (activeOrder?.deliveryLocation) || defaultCenter}
-                    zoom={currentLocation ? 15 : 12}
-                    onLoad={(map) => setMap(map)}
-                  >
-                    {/* Current Location (Rider) */}
-                    {currentLocation && (
-                      <Marker
-                        position={currentLocation}
-                        icon={{
-                          url: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png',
-                          scaledSize: new window.google.maps.Size(50, 50)
-                        }}
-                        title="Your Location"
-                      />
-                    )}
+              <div className="rounded-lg overflow-hidden" style={{ height: '400px' }}>
+                <MapContainer
+                  center={mapCenter}
+                  zoom={mapZoom}
+                  style={{ height: '100%', width: '100%' }}
+                  scrollWheelZoom={true}
+                >
+                  <MapUpdater center={mapCenter} zoom={mapZoom} />
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  
+                  {/* Current Location (Rider) */}
+                  {currentLocation && (
+                    <Marker position={[currentLocation.lat, currentLocation.lng]} icon={greenIcon}>
+                      <Popup>
+                        <div>
+                          <h3 className="font-bold">Your Location</h3>
+                          <p className="text-sm">Rider position</p>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  )}
 
-                    {/* Pickup Location */}
-                    {activeOrder && (
-                      <Marker
-                        position={{ lat: -1.2921, lng: 36.8219 }}
-                        icon={{
-                          url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
-                        }}
-                        title="Pickup Location"
-                      />
-                    )}
+                  {/* Pickup Location */}
+                  {activeOrder && (
+                    <Marker position={[defaultCenter.lat, defaultCenter.lng]} icon={blueIcon}>
+                      <Popup>
+                        <div>
+                          <h3 className="font-bold">Pickup Location</h3>
+                          <p className="text-sm">Nairobi City Stadium</p>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  )}
 
-                    {/* Delivery Location */}
-                    {activeOrder?.deliveryLocation && (
-                      <Marker
-                        position={activeOrder.deliveryLocation}
-                        icon={{
-                          url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
-                        }}
-                        title="Delivery Location"
-                      />
-                    )}
-                  </GoogleMap>
-                </LoadScript>
-              ) : (
-                <div className="bg-gray-100 rounded-lg p-12 text-center">
-                  <p className="text-gray-600 mb-4">Map requires Google Maps API key</p>
-                  <p className="text-sm text-gray-500">
-                    Set VITE_GOOGLE_MAPS_API_KEY in environment variables
-                  </p>
-                </div>
-              )}
+                  {/* Delivery Location */}
+                  {activeOrder?.deliveryLocation && (
+                    <Marker position={[activeOrder.deliveryLocation.lat, activeOrder.deliveryLocation.lng]} icon={redIcon}>
+                      <Popup>
+                        <div>
+                          <h3 className="font-bold">Delivery Location</h3>
+                          <p className="text-sm">{activeOrder.deliveryAddress}</p>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  )}
+                </MapContainer>
+              </div>
             </div>
           </div>
         </div>
@@ -379,4 +425,3 @@ export default function RiderDashboard() {
     </div>
   )
 }
-
