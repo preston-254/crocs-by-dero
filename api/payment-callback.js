@@ -18,8 +18,7 @@ export default async function handler(req, res) {
   try {
     const callbackData = req.body
 
-    // Log the complete callback for debugging
-    console.log('=== M-PESA CALLBACK RECEIVED ===')
+    console.log('=== M-PESA PAYMENT CALLBACK ===')
     console.log('Timestamp:', new Date().toISOString())
     console.log('Full Callback Data:', JSON.stringify(callbackData, null, 2))
     console.log('=================================')
@@ -53,7 +52,9 @@ export default async function handler(req, res) {
         transactionDate: items.find(item => item.Name === 'TransactionDate')?.Value,
         phoneNumber: items.find(item => item.Name === 'PhoneNumber')?.Value
       }
-      console.log('Payment Details:', paymentDetails)
+      console.log('✅ PAYMENT SUCCESS:', paymentDetails)
+    } else {
+      console.log('❌ PAYMENT FAILED:', { ResultCode, ResultDesc })
     }
 
     // TODO: Save to Firebase
