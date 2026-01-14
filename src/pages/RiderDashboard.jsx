@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
-import { getRiderOrders, updateOrderStatus, updateRiderLocation, updateOrderRiderLocation, subscribeToRiderLocation } from '../firebase/ordersService'
+import { getRiderOrders, updateOrderStatus, updateRiderLocation, updateOrderRiderLocation, subscribeToRiderLocation, createOrUpdateRider } from '../firebase/ordersService'
 import { formatPrice } from '../context/ProductContext'
+import { useAuth } from '../context/AuthContext'
 import { Package, MapPin, Play, CheckCircle, Navigation, LogOut, Loader } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import 'leaflet/dist/leaflet.css'
@@ -62,31 +63,43 @@ const defaultCenter = {
 
 export default function RiderDashboard() {
   const navigate = useNavigate()
-  const [riderId, setRiderId] = useState(() => localStorage.getItem('rider-id') || '')
-  const [riderName, setRiderName] = useState(() => localStorage.getItem('rider-name') || '')
+  const { user, signIn, signOut, loading: authLoading } = useAuth()
+  const [riderId, setRiderId] = useState(null)
+  const [riderName, setRiderName] = useState('')
   const [orders, setOrders] = useState([])
   const [activeOrder, setActiveOrder] = useState(null)
   const [isTracking, setIsTracking] = useState(false)
   const [currentLocation, setCurrentLocation] = useState(null)
   const watchIdRef = useRef(null)
   const locationUpdateInterval = useRef(null)
+  const currentLocationRef = useRef(null)
+
+  // Initialize rider when user logs in
+  useEffect(() => {
+    if (user && !riderId) {
+      const userId = user.uid
+      setRiderId(userId)
+      setRiderName(user.displayName || user.email || 'Rider')
+      
+      // Create or update rider profile
+      createOrUpdateRider(userId, {
+        name: user.displayName || user.email || 'Rider',
+        email: user.email,
+        phone: user.phoneNumber || '',
+        photoURL: user.photoURL || '',
+        isActive: true
+      }).catch(error => {
+        console.error('Error creating rider profile:', error)
+      })
+    } else if (!user && !authLoading) {
+      // Redirect to login if not authenticated
+      navigate('/login?redirect=/rider-dashboard')
+    }
+  }, [user, riderId, authLoading, navigate])
 
   useEffect(() => {
     if (!riderId) {
-      // Prompt for rider ID if not set
-      const id = prompt('Enter your Rider ID:')
-      if (id) {
-        setRiderId(id)
-        localStorage.setItem('rider-id', id)
-        const name = prompt('Enter your name:')
-        if (name) {
-          setRiderName(name)
-          localStorage.setItem('rider-name', name)
-        }
-      } else {
-        navigate('/')
-        return
-      }
+      return
     }
 
     loadOrders()
@@ -128,25 +141,45 @@ export default function RiderDashboard() {
     // Get initial location
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        const location = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        }
-        setCurrentLocation(location)
-        
-        // Update rider location in Firebase
-        try {
-          await updateRiderLocation(riderId, location)
-          await updateOrderRiderLocation(orderId, location)
-        } catch (error) {
-          console.error('Error updating location:', error)
-        }
+      const location = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude
+      }
+      currentLocationRef.current = location
+      setCurrentLocation(location)
+      
+      // Update rider location in Firebase
+      try {
+        await updateRiderLocation(riderId, location)
+        await updateOrderRiderLocation(orderId, location)
+      } catch (error) {
+        console.error('Error updating location:', error)
+      }
       },
       (error) => {
         console.error('Error getting location:', error)
         alert('Unable to get your location. Please enable location services.')
       }
     )
+
+    // Set up interval to update location every 5 seconds
+    if (locationUpdateInterval.current) {
+      clearInterval(locationUpdateInterval.current)
+    }
+    
+    locationUpdateInterval.current = setInterval(async () => {
+      const location = currentLocationRef.current
+      if (location) {
+        try {
+          await updateRiderLocation(riderId, location)
+          if (orderId) {
+            await updateOrderRiderLocation(orderId, location)
+          }
+        } catch (error) {
+          console.error('Error updating location:', error)
+        }
+      }
+    }, 5000)
 
     // Watch position for continuous updates
     watchIdRef.current = navigator.geolocation.watchPosition(
@@ -155,23 +188,18 @@ export default function RiderDashboard() {
           lat: position.coords.latitude,
           lng: position.coords.longitude
         }
+        currentLocationRef.current = location
         setCurrentLocation(location)
         
-        // Update every 5 seconds
-        if (locationUpdateInterval.current) {
-          clearInterval(locationUpdateInterval.current)
-        }
-        
-        locationUpdateInterval.current = setInterval(async () => {
-          try {
-            await updateRiderLocation(riderId, location)
-            if (orderId) {
-              await updateOrderRiderLocation(orderId, location)
-            }
-          } catch (error) {
-            console.error('Error updating location:', error)
+        // Update immediately when location changes
+        try {
+          await updateRiderLocation(riderId, location)
+          if (orderId) {
+            await updateOrderRiderLocation(orderId, location)
           }
-        }, 5000)
+        } catch (error) {
+          console.error('Error updating location:', error)
+        }
       },
       (error) => {
         console.error('Error watching location:', error)
@@ -225,11 +253,10 @@ export default function RiderDashboard() {
     }
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (confirm('Log out from rider dashboard?')) {
-      localStorage.removeItem('rider-id')
-      localStorage.removeItem('rider-name')
       stopLocationTracking()
+      await signOut()
       navigate('/')
     }
   }

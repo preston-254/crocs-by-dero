@@ -1,16 +1,28 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import { Menu, X, ShoppingBag } from 'lucide-react'
+import { Menu, X, ShoppingBag, User, LogOut, Bike } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '../context/CartContext'
+import { useAuth } from '../context/AuthContext'
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
   const { getCartCount } = useCart()
+  const { user, signOut } = useAuth()
   const cartCount = getCartCount()
 
   const isActive = (path) => location.pathname === path
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      navigate('/')
+    } catch (error) {
+      console.error('Sign out error:', error)
+    }
+  }
 
   return (
     <nav className="bg-white shadow-md sticky top-0 z-50 glass-effect">
@@ -59,6 +71,33 @@ export default function Navbar() {
             >
               Contact
             </Link>
+            {user ? (
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2 text-gray-700">
+                  {user.photoURL ? (
+                    <img src={user.photoURL} alt={user.displayName || 'User'} className="w-8 h-8 rounded-full" />
+                  ) : (
+                    <User size={20} />
+                  )}
+                  <span className="text-sm font-medium">{user.displayName || user.email}</span>
+                </div>
+                <button
+                  onClick={handleSignOut}
+                  className="px-3 py-2 text-gray-700 hover:text-red-600 transition-all duration-200 flex items-center space-x-1"
+                >
+                  <LogOut size={18} />
+                  <span className="text-sm">Sign Out</span>
+                </button>
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className="px-4 py-2 text-gray-700 hover:text-crocs-green transition-all duration-200 flex items-center space-x-1"
+              >
+                <User size={20} />
+                <span>Sign In</span>
+              </Link>
+            )}
             <Link
               to="/checkout"
               className="relative px-4 py-2 text-gray-700 hover:text-crocs-green transition-all duration-200"
@@ -69,6 +108,13 @@ export default function Navbar() {
                   {cartCount}
                 </span>
               )}
+            </Link>
+            <Link
+              to="/rider-dashboard"
+              className="px-4 py-2 text-gray-700 hover:text-crocs-green transition-all duration-200 flex items-center space-x-1"
+            >
+              <Bike size={20} />
+              <span className="text-sm">Rider</span>
             </Link>
           </div>
 
@@ -119,6 +165,37 @@ export default function Navbar() {
               >
                 Contact
               </Link>
+              {user ? (
+                <>
+                  <div className="px-3 py-2 rounded-lg text-gray-700 flex items-center space-x-2">
+                    {user.photoURL ? (
+                      <img src={user.photoURL} alt={user.displayName || 'User'} className="w-6 h-6 rounded-full" />
+                    ) : (
+                      <User size={18} />
+                    )}
+                    <span className="text-sm">{user.displayName || user.email}</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setIsOpen(false)
+                      handleSignOut()
+                    }}
+                    className="block px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                  >
+                    <LogOut size={18} />
+                    <span>Sign Out</span>
+                  </button>
+                </>
+              ) : (
+                <Link
+                  to="/login"
+                  onClick={() => setIsOpen(false)}
+                  className="block px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                >
+                  <User size={18} />
+                  <span>Sign In</span>
+                </Link>
+              )}
               <Link
                 to="/checkout"
                 onClick={() => setIsOpen(false)}
@@ -130,6 +207,14 @@ export default function Navbar() {
                     {cartCount}
                   </span>
                 )}
+              </Link>
+              <Link
+                to="/rider-dashboard"
+                onClick={() => setIsOpen(false)}
+                className="block px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+              >
+                <Bike size={18} />
+                <span>Rider Dashboard</span>
               </Link>
             </div>
           </motion.div>
