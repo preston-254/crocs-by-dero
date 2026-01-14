@@ -90,7 +90,9 @@ export default function RiderDashboard() {
       }
 
       try {
+        console.log('Checking authorization for user:', user.email)
         const authorized = await isRiderAuthorized(user.email)
+        console.log('Authorization result:', authorized)
         setIsAuthorized(authorized)
         
         if (authorized && !riderId) {

@@ -7,16 +7,27 @@ const AUTHORIZED_RIDERS_COLLECTION = 'authorizedRiders'
 // Check if user email is authorized to access rider dashboard
 export async function isRiderAuthorized(email) {
   if (!isFirebaseConfigured || !db || !email) {
+    console.log('Authorization check failed: Firebase not configured or no email')
     return false
   }
 
   try {
-    // Check if email exists in authorizedRiders collection
+    const emailLower = email.toLowerCase()
+    console.log('Checking authorization for email:', emailLower)
+    
+    // Check if email exists in authorizedRiders collection (case-insensitive)
     const q = query(
       collection(db, AUTHORIZED_RIDERS_COLLECTION),
-      where('email', '==', email.toLowerCase())
+      where('email', '==', emailLower)
     )
     const querySnapshot = await getDocs(q)
+    
+    console.log('Authorization query result:', {
+      email: emailLower,
+      found: !querySnapshot.empty,
+      count: querySnapshot.size,
+      docs: querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    })
     
     return !querySnapshot.empty
   } catch (error) {

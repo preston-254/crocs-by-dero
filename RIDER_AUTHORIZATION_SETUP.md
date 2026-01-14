@@ -42,14 +42,14 @@ addAuthorizedRider('rider@example.com', 'John Doe')
 In Firebase Console, add multiple documents to the `authorizedRiders` collection:
 
 **Document 1:**
-- `email`: `rider1@example.com`
-- `name`: `John Doe`
-- `createdAt`: `2024-01-01T00:00:00.000Z`
+- `email`: `prestonmugo33@gmail.com`
+- `name`: `Preston Mugo` (optional)
+- `createdAt`: (current timestamp, optional)
 
 **Document 2:**
-- `email`: `rider2@example.com`
-- `name`: `Jane Smith`
-- `createdAt`: `2024-01-01T00:00:00.000Z`
+- `email`: `derroreacts@gmail.com`
+- `name`: `Derro` (optional)
+- `createdAt`: (current timestamp, optional)
 
 ## Removing Authorized Riders
 
