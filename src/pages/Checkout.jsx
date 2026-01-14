@@ -308,44 +308,44 @@ export default function Checkout() {
                     key={item.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg"
+                    className="flex items-start gap-3 p-4 border border-gray-200 rounded-lg"
                   >
                     <img
                       src={item.product.image}
                       alt={item.product.name}
-                      className="w-20 h-20 object-cover rounded-lg"
+                      className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg flex-shrink-0"
                     />
-                    <div className="flex-grow">
-                      <h3 className="font-semibold text-gray-900">{item.product.name}</h3>
-                      <p className="text-sm text-gray-600">
+                    <div className="flex-grow min-w-0">
+                      <h3 className="font-semibold text-gray-900 text-sm sm:text-base">{item.product.name}</h3>
+                      <p className="text-xs sm:text-sm text-gray-600">
                         {item.size && `Size: ${item.size}`}
                         {item.size && item.color && ' • '}
                         {item.color && `Color: ${item.color}`}
                       </p>
-                      <p className="text-lg font-bold text-crocs-green mt-1">
+                      <p className="text-base sm:text-lg font-bold text-crocs-green mt-1">
                         {formatPrice(item.price * item.quantity)}
                       </p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        className="p-1 rounded-lg hover:bg-gray-100"
-                      >
-                        <Minus size={20} />
-                      </button>
-                      <span className="w-8 text-center font-semibold">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="p-1 rounded-lg hover:bg-gray-100"
-                      >
-                        <Plus size={20} />
-                      </button>
+                      <div className="flex items-center gap-2 mt-2">
+                        <button
+                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          className="p-1 rounded-lg hover:bg-gray-100"
+                        >
+                          <Minus size={18} />
+                        </button>
+                        <span className="w-8 text-center font-semibold text-sm">{item.quantity}</span>
+                        <button
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          className="p-1 rounded-lg hover:bg-gray-100"
+                        >
+                          <Plus size={18} />
+                        </button>
+                      </div>
                     </div>
                     <button
                       onClick={() => removeFromCart(item.id)}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
                     >
-                      <Trash2 size={20} />
+                      <Trash2 size={18} />
                     </button>
                   </motion.div>
                 ))}
@@ -400,7 +400,7 @@ export default function Checkout() {
                     Select Delivery Location
                   </label>
                   {GOOGLE_MAPS_API_KEY && GOOGLE_MAPS_API_KEY !== 'YOUR_GOOGLE_MAPS_API_KEY' ? (
-                    <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
+                    <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY} preventGoogleFontsLoading>
                       <GoogleMap
                         mapContainerStyle={mapContainerStyle}
                         center={deliveryLocation || getPickupLocation()}
@@ -520,12 +520,7 @@ export default function Checkout() {
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Delivery</span>
-                  <span>
-                    {deliveryType === 'delivery' 
-                      ? formatPrice(deliveryFee) 
-                      : <span className="text-crocs-green">Free</span>
-                    }
-                  </span>
+                  <span>{deliveryType === 'delivery' ? formatPrice(deliveryFee) : 'Free'}</span>
                 </div>
                 <div className="border-t border-gray-200 pt-4">
                   <div className="flex justify-between text-xl font-bold text-gray-900">

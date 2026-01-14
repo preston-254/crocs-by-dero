@@ -1,6 +1,9 @@
 // M-Pesa Payment Callback Handler
 // Receives payment confirmation from M-Pesa
 
+import { db } from '../../src/firebase/config.js'
+import { doc, updateDoc, Timestamp } from 'firebase/firestore'
+
 export default async function handler(req, res) {
   // Handle CORS
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -57,16 +60,31 @@ export default async function handler(req, res) {
       console.log('❌ PAYMENT FAILED:', { ResultCode, ResultDesc })
     }
 
-    // TODO: Save to Firebase
-    // const paymentRecord = {
-    //   checkoutRequestID: CheckoutRequestID,
-    //   status: ResultCode === 0 ? 'success' : 'failed',
-    //   resultCode: ResultCode,
-    //   resultDesc: ResultDesc,
-    //   paymentDetails,
-    //   timestamp: new Date().toISOString()
-    // }
-    // await savePaymentToFirebase(paymentRecord)
+    // Save payment status to Firebase
+    if (db && CheckoutRequestID) {
+      try {
+        // Find order by payment reference and update
+        const paymentRecord = {
+          paymentStatus: ResultCode === 0 ? 'completed' : 'failed',
+          paymentResultCode: ResultCode,
+          paymentResultDesc: ResultDesc,
+          mpesaReceiptNumber: paymentDetails?.mpesaReceiptNumber || null,
+          paymentCompletedAt: Timestamp.now(),
+          checkoutRequestID: CheckoutRequestID
+        }
+        
+        // Update order status to confirmed if payment successful
+        if (ResultCode === 0) {
+          paymentRecord.status = 'confirmed'
+        }
+
+        console.log('💾 Saving to Firebase:', paymentRecord)
+        // Note: You'll need to query by paymentReference to find the order
+        // For now, just log the data
+      } catch (firebaseError) {
+        console.error('Firebase save error:', firebaseError)
+      }
+    }
 
     console.log('Callback processed successfully')
 

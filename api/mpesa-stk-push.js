@@ -23,11 +23,23 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing required fields: phoneNumber, amount, accountReference' })
     }
 
-    // Format phone number (remove + and ensure it starts with 254)
+    // Format phone number correctly for Kenya
     let formattedPhone = phoneNumber.replace(/\s+/g, '').replace(/^\+/, '')
-    if (formattedPhone.startsWith('0')) {
+    
+    // Handle 07... format (Safaricom)
+    if (formattedPhone.startsWith('07')) {
+      formattedPhone = '2547' + formattedPhone.substring(2)
+    }
+    // Handle 01... format (Airtel)
+    else if (formattedPhone.startsWith('01')) {
+      formattedPhone = '2541' + formattedPhone.substring(2)
+    }
+    // Handle 0... format (other)
+    else if (formattedPhone.startsWith('0')) {
       formattedPhone = '254' + formattedPhone.substring(1)
-    } else if (!formattedPhone.startsWith('254')) {
+    }
+    // Already has 254
+    else if (!formattedPhone.startsWith('254')) {
       formattedPhone = '254' + formattedPhone
     }
 
@@ -79,7 +91,8 @@ export default async function handler(req, res) {
     // Get shortcode and passkey from environment
     const shortCode = process.env.MPESA_SHORTCODE
     const passKey = process.env.MPESA_PASSKEY
-    const callbackUrl = process.env.MPESA_CALLBACK_URL || `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/api/mpesa-callback`
+    const partyB = process.env.MPESA_PARTY_B || shortCode
+    const callbackUrl = process.env.MPESA_CALLBACK_URL || `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/api/payment-callback`
 
     if (!shortCode || !passKey) {
       return res.status(500).json({ error: 'M-Pesa shortcode or passkey not configured' })
@@ -99,7 +112,7 @@ export default async function handler(req, res) {
       TransactionType: 'CustomerPayBillOnline',
       Amount: Math.round(amountNum), // M-Pesa requires integer amount
       PartyA: formattedPhone,
-      PartyB: shortCode,
+      PartyB: partyB,
       PhoneNumber: formattedPhone,
       CallBackURL: callbackUrl,
       AccountReference: accountReference.substring(0, 12), // Max 12 characters
