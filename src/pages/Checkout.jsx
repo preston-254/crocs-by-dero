@@ -46,7 +46,6 @@ export default function Checkout() {
   const { getCharms } = useProducts()
   const { placeOrder } = useOrder()
   const { user } = useAuth()
-  const { user } = useAuth()
   const [suggestedCharms, setSuggestedCharms] = useState([])
   const [deliveryType, setDeliveryType] = useState('delivery') // 'delivery' or 'collect'
   const [phoneNumber, setPhoneNumber] = useState('')
