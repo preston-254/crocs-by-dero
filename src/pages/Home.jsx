@@ -53,31 +53,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Trust Section */}
-      <section className="py-16 bg-gray-50 border-y border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            {[
-              { icon: Shield, title: 'Quality Guaranteed', desc: 'Authentic products only' },
-              { icon: Truck, title: 'Fast Delivery', desc: 'Quick and reliable shipping' },
-              { icon: Star, title: 'Best Prices', desc: 'Competitive market rates' },
-            ].map((item, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1, duration: 0.6 }}
-                className="text-center"
-              >
-                <item.icon className="w-10 h-10 text-black mx-auto mb-4" strokeWidth={1.5} />
-                <h3 className="font-medium text-black text-lg mb-2">{item.title}</h3>
-                <p className="text-gray-500 text-sm">{item.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Search and Filters */}
       <section id="products" className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -129,6 +104,31 @@ export default function Home() {
               <p className="text-gray-400 text-sm">No products found. Try a different search or category.</p>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Trust Section */}
+      <section className="py-16 bg-gray-50 border-y border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            {[
+              { icon: Shield, title: 'Quality Guaranteed', desc: 'Authentic products only' },
+              { icon: Truck, title: 'Fast Delivery', desc: 'Quick and reliable shipping' },
+              { icon: Star, title: 'Best Prices', desc: 'Competitive market rates' },
+            ].map((item, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1, duration: 0.6 }}
+                className="text-center"
+              >
+                <item.icon className="w-10 h-10 text-black mx-auto mb-4" strokeWidth={1.5} />
+                <h3 className="font-medium text-black text-lg mb-2">{item.title}</h3>
+                <p className="text-gray-500 text-sm">{item.desc}</p>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </section>
     </div>
