@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api'
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet'
+import L from 'leaflet'
 import { useCart } from '../context/CartContext'
 import { useProducts, formatPrice } from '../context/ProductContext'
 import { useOrder } from '../context/OrderContext'
 import { calculateDeliveryFee, getPickupLocation, formatDistance, calculateDistance } from '../utils/deliveryUtils'
 import { Trash2, Plus, Minus, ArrowLeft, CreditCard, Loader, CheckCircle, XCircle, Phone, MapPin, Package } from 'lucide-react'
+import 'leaflet/dist/leaflet.css'
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY'
 
@@ -15,6 +17,30 @@ const mapContainerStyle = {
   height: '300px',
   borderRadius: '12px'
 }
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+})
+
+// Custom icons
+const redIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+})
+
+const blueIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+})
 
 export default function Checkout() {
   const navigate = useNavigate()
@@ -31,7 +57,7 @@ export default function Checkout() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [paymentStatus, setPaymentStatus] = useState(null)
   const [paymentMessage, setPaymentMessage] = useState('')
-  const [map, setMap] = useState(null)
+  const mapRef = useRef(null)
 
   const charms = getCharms()
   const subtotal = getCartTotal()
@@ -60,17 +86,14 @@ export default function Checkout() {
     }
   }, [deliveryLocation, deliveryType])
 
-  const handleMapClick = (event) => {
-    if (deliveryType === 'delivery' && event.latLng) {
-      const location = {
-        lat: event.latLng.lat(),
-        lng: event.latLng.lng()
-      }
-      setDeliveryLocation(location)
-      
-      // Reverse geocode to get address (simplified - in production use Google Geocoding API)
-      setDeliveryAddress(`Lat: ${location.lat.toFixed(6)}, Lng: ${location.lng.toFixed(6)}`)
-    }
+  // Component to handle map clicks
+  function MapClickHandler({ onClick }) {
+    useMapEvents({
+      click(e) {
+        onClick(e.latlng)
+      },
+    })
+    return null
   }
 
   const handleMpesaPayment = async () => {
