@@ -127,42 +127,57 @@ export async function getCustomerOrders(customerId) {
     return []
   }
 
+  const allOrders = []
+
   // Try to get orders by phone first
   try {
     const phoneQuery = query(
       collection(db, ORDERS_COLLECTION),
-      where('customerPhone', '==', customerId),
-      orderBy('createdAt', 'desc')
+      where('customerPhone', '==', customerId)
     )
     const phoneSnapshot = await getDocs(phoneQuery)
     
     if (!phoneSnapshot.empty) {
-      return phoneSnapshot.docs.map(doc => ({
+      const phoneOrders = phoneSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }))
+      allOrders.push(...phoneOrders)
     }
   } catch (error) {
     console.error('Error querying by phone:', error)
   }
 
-  // If no results, try by email
+  // Also try by email (in case user has orders with email)
   try {
     const emailQuery = query(
       collection(db, ORDERS_COLLECTION),
-      where('customerEmail', '==', customerId),
-      orderBy('createdAt', 'desc')
+      where('customerEmail', '==', customerId)
     )
     const emailSnapshot = await getDocs(emailQuery)
     
-    return emailSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }))
+    if (!emailSnapshot.empty) {
+      const emailOrders = emailSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      // Add orders that aren't already in allOrders (avoid duplicates)
+      emailOrders.forEach(order => {
+        if (!allOrders.find(o => o.id === order.id)) {
+          allOrders.push(order)
+        }
+      })
+    }
   } catch (error) {
     console.error('Error querying by email:', error)
-    return []
   }
+
+  // Sort by createdAt descending (newest first) - client-side sorting
+  return allOrders.sort((a, b) => {
+    const aTime = a.createdAt?.toMillis?.() || a.createdAt || 0
+    const bTime = b.createdAt?.toMillis?.() || b.createdAt || 0
+    return bTime - aTime
+  })
 }
 
 // Get orders assigned to rider
@@ -173,15 +188,21 @@ export async function getRiderOrders(riderId) {
 
   const q = query(
     collection(db, ORDERS_COLLECTION),
-    where('riderId', '==', riderId),
-    orderBy('createdAt', 'desc')
+    where('riderId', '==', riderId)
   )
   const querySnapshot = await getDocs(q)
   
-  return querySnapshot.docs.map(doc => ({
+  const orders = querySnapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data()
   }))
+  
+  // Sort by createdAt descending (newest first) - client-side sorting
+  return orders.sort((a, b) => {
+    const aTime = a.createdAt?.toMillis?.() || a.createdAt || 0
+    const bTime = b.createdAt?.toMillis?.() || b.createdAt || 0
+    return bTime - aTime
+  })
 }
 
 // Subscribe to order updates (real-time)
