@@ -10,12 +10,9 @@ import { calculateDeliveryFee, getPickupLocation, formatDistance, calculateDista
 import { Trash2, Plus, Minus, ArrowLeft, CreditCard, Loader, CheckCircle, XCircle, Phone, MapPin, Package } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
 
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY'
-
-const mapContainerStyle = {
-  width: '100%',
-  height: '300px',
-  borderRadius: '12px'
+// Fix for default marker icons in Leaflet with Vite
+if (L.Icon.Default.prototype._getIconUrl) {
+  delete L.Icon.Default.prototype._getIconUrl
 }
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
@@ -422,37 +419,39 @@ export default function Checkout() {
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Select Delivery Location
                   </label>
-                  {GOOGLE_MAPS_API_KEY && GOOGLE_MAPS_API_KEY !== 'YOUR_GOOGLE_MAPS_API_KEY' ? (
-                    <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY} preventGoogleFontsLoading>
-                      <GoogleMap
-                        mapContainerStyle={mapContainerStyle}
-                        center={deliveryLocation || getPickupLocation()}
-                        zoom={13}
-                        onClick={handleMapClick}
-                        onLoad={(map) => setMap(map)}
-                      >
-                        {deliveryLocation && (
-                          <Marker
-                            position={deliveryLocation}
-                            icon={{
-                              url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
-                            }}
-                          />
-                        )}
-                        <Marker
-                          position={getPickupLocation()}
-                          icon={{
-                            url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
-                          }}
-                          title="Pickup Location (Nairobi City Stadium)"
-                        />
-                      </GoogleMap>
-                    </LoadScript>
-                  ) : (
-                    <div className="bg-gray-100 rounded-lg p-8 text-center">
-                      <p className="text-gray-600">Map requires Google Maps API key</p>
-                    </div>
-                  )}
+                  <div className="rounded-lg overflow-hidden" style={{ height: '300px' }}>
+                    <MapContainer
+                      center={deliveryLocation || getPickupLocation()}
+                      zoom={13}
+                      style={{ height: '100%', width: '100%' }}
+                      ref={mapRef}
+                    >
+                      <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      />
+                      <MapClickHandler
+                        onClick={(latlng) => {
+                          if (deliveryType === 'delivery') {
+                            const location = {
+                              lat: latlng.lat,
+                              lng: latlng.lng
+                            }
+                            setDeliveryLocation(location)
+                            setDeliveryAddress(`Lat: ${location.lat.toFixed(6)}, Lng: ${location.lng.toFixed(6)}`)
+                          }
+                        }}
+                      />
+                      {deliveryLocation && (
+                        <Marker position={[deliveryLocation.lat, deliveryLocation.lng]} icon={redIcon}>
+                          <Popup>Delivery Location</Popup>
+                        </Marker>
+                      )}
+                      <Marker position={[getPickupLocation().lat, getPickupLocation().lng]} icon={blueIcon}>
+                        <Popup>Pickup Location (Nairobi City Stadium)</Popup>
+                      </Marker>
+                    </MapContainer>
+                  </div>
                   {deliveryLocation && (
                     <p className="text-sm text-gray-600 mt-2">
                       Distance: {formatDistance(calculateDistance(

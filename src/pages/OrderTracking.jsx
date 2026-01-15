@@ -9,12 +9,9 @@ import { ArrowLeft, Package, MapPin, Clock, CheckCircle, Truck, Loader } from 'l
 import { motion } from 'framer-motion'
 import 'leaflet/dist/leaflet.css'
 
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY'
-
-const mapContainerStyle = {
-  width: '100%',
-  height: '500px',
-  borderRadius: '12px'
+// Fix for default marker icons in Leaflet with Vite
+if (L.Icon.Default.prototype._getIconUrl) {
+  delete L.Icon.Default.prototype._getIconUrl
 }
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
