@@ -135,13 +135,14 @@ export default function Orders() {
 
   // Timeout fallback - if loading takes too long, show no orders
   useEffect(() => {
-    if (loading && !hasLoaded) {
+    if (!hasLoaded) {
       const timeout = setTimeout(() => {
+        console.log('Orders page timeout - showing no orders')
         setHasLoaded(true)
-      }, 5000) // 5 second timeout
+      }, 3000) // 3 second timeout
       return () => clearTimeout(timeout)
     }
-  }, [loading, hasLoaded])
+  }, [hasLoaded])
 
   // Subscribe to selected order updates
   useEffect(() => {
@@ -173,8 +174,8 @@ export default function Orders() {
     return () => unsubscribe()
   }, [selectedOrder?.riderId, selectedOrder?.status])
 
-  // Show loading only if we haven't loaded yet and are still loading
-  if (loading && !hasLoaded) {
+  // Show loading only if we haven't loaded yet
+  if (!hasLoaded) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

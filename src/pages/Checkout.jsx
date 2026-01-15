@@ -192,7 +192,16 @@ export default function Checkout() {
           if (responseText && responseText.trim()) {
             try {
               const errorData = JSON.parse(responseText)
-              errorMessage = errorData.error || errorData.details?.errorMessage || errorMessage
+              // Show user-friendly error message
+              if (errorData.message) {
+                errorMessage = errorData.message
+              } else if (errorData.error === 'Failed to get access token') {
+                errorMessage = 'M-Pesa authentication failed. Please check that M-Pesa credentials are configured in Vercel and the site has been redeployed.'
+              } else if (errorData.error === 'M-Pesa credentials not configured') {
+                errorMessage = 'M-Pesa payment is not configured. Please contact support.'
+              } else {
+                errorMessage = errorData.error || errorData.details?.errorMessage || errorMessage
+              }
             } catch (e) {
               // If not JSON, use the raw text or status
               errorMessage = responseText.length > 100 
