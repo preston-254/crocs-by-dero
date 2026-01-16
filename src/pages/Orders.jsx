@@ -107,13 +107,15 @@ export default function Orders() {
   const [hasLoaded, setHasLoaded] = useState(false)
 
   useEffect(() => {
+    // Reset state when user changes
+    setHasLoaded(false)
+    setError(null)
+    
     if (user) {
       // Try to fetch orders by email first (for Google auth users)
       // Then try by phone if email doesn't work
       const identifier = user.email || user.phoneNumber
       if (identifier) {
-        setError(null)
-        setHasLoaded(false)
         fetchCustomerOrders(identifier)
           .then(() => {
             setHasLoaded(true)
@@ -128,6 +130,7 @@ export default function Orders() {
         setHasLoaded(true)
       }
     } else {
+      // User not logged in - show message immediately
       setError('Please log in to view your orders.')
       setHasLoaded(true)
     }
