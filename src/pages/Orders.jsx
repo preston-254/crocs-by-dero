@@ -107,16 +107,18 @@ export default function Orders() {
   const [hasLoaded, setHasLoaded] = useState(false)
 
   useEffect(() => {
-    // Reset state when user changes
+    // Only reset if user actually changed (not on every render)
+    const userIdentifier = user?.email || user?.phoneNumber
+    
+    // Reset state only when user identifier changes
     setHasLoaded(false)
     setError(null)
     
     if (user) {
       // Try to fetch orders by email first (for Google auth users)
       // Then try by phone if email doesn't work
-      const identifier = user.email || user.phoneNumber
-      if (identifier) {
-        fetchCustomerOrders(identifier)
+      if (userIdentifier) {
+        fetchCustomerOrders(userIdentifier)
           .then(() => {
             setHasLoaded(true)
           })
@@ -134,7 +136,9 @@ export default function Orders() {
       setError('Please log in to view your orders.')
       setHasLoaded(true)
     }
-  }, [user, fetchCustomerOrders])
+    // Only depend on user identifier, not the entire user object or function
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.email, user?.phoneNumber])
 
   // Timeout fallback - if loading takes too long, show no orders
   useEffect(() => {

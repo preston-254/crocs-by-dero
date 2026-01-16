@@ -1,5 +1,5 @@
 // Order Context for managing orders
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { 
   createOrder, 
   getOrder, 
@@ -68,8 +68,8 @@ export function OrderProvider({ children }) {
     return unsubscribe
   }
 
-  // Get customer orders
-  const fetchCustomerOrders = async (customerPhone) => {
+  // Get customer orders - memoized to prevent unnecessary re-renders
+  const fetchCustomerOrders = useCallback(async (customerPhone) => {
     setLoading(true)
     try {
       const customerOrders = await getCustomerOrders(customerPhone)
@@ -81,7 +81,7 @@ export function OrderProvider({ children }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   return (
     <OrderContext.Provider value={{
